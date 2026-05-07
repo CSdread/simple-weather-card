@@ -70,5 +70,8 @@ export default function getStyles(css) {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .weather__info__state {
+      text-transform: capitalize;
+    }
   `;
 }

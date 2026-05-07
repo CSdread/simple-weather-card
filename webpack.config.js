@@ -17,12 +17,22 @@ module.exports = {
         },
       },
       {
-        test: /\.(png|svg)$/i,
+        test: /\.png$/i,
         type: 'asset/inline',
         generator: {
           dataUrl: {
             encoding: 'base64',
             mimetype: 'image/png'
+          }
+        }
+      },
+      {
+        test: /\.svg$/i,
+        type: 'asset/inline',
+        generator: {
+          dataUrl: {
+            encoding: 'base64',
+            mimetype: 'image/svg+xml'
           }
         }
       },
