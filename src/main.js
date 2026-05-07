@@ -21,6 +21,9 @@ class SimpleWeatherCard extends LitElement {
   constructor() {
     super();
     this.custom = {};
+    this.forecast = [];
+    this._subscribedEntity = null;
+    this._unsubForecast = null;
   }
 
   static styles = style(css);
@@ -31,7 +34,8 @@ class SimpleWeatherCard extends LitElement {
       config: { type: Object },
       entity: { type: Object },
       weather: { type: Object },
-      custom: { type: Object }
+      custom: { type: Object },
+      forecast: { type: Array },
     };
   }
 
@@ -43,6 +47,10 @@ class SimpleWeatherCard extends LitElement {
     if (entityObj && this.entity !== entityObj) {
       this.entity = entityObj;
       this.weather = new WeatherEntity(hass, entityObj);
+      this.weather.forecast = this.forecast;
+    }
+    if (this._subscribedEntity !== entity) {
+      this._subscribeForecast(entity);
     }
     const newCustom = {};
     custom.forEach((ele) => {
@@ -68,6 +76,53 @@ class SimpleWeatherCard extends LitElement {
 
   get hass() {
     return this._hass;
+  }
+
+  async _subscribeForecast(entity) {
+    if (this._unsubForecast) {
+      try { this._unsubForecast(); } catch (_) { /* noop */ }
+      this._unsubForecast = null;
+    }
+    this._subscribedEntity = entity;
+    if (!this._hass || !entity) return;
+    try {
+      this._unsubForecast = await this._hass.connection.subscribeMessage(
+        (event) => {
+          const forecast = (event && event.forecast) || [];
+          this.forecast = forecast;
+          if (this.weather) {
+            this.weather.forecast = forecast;
+          }
+        },
+        {
+          type: "weather/subscribe_forecast",
+          forecast_type: "daily",
+          entity_id: entity,
+        }
+      );
+    } catch (e) {
+      console.warn(
+        "simple-weather-card: forecast subscription failed for",
+        entity,
+        e
+      );
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (this._hass && this.config && this.config.entity && !this._unsubForecast) {
+      this._subscribeForecast(this.config.entity);
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._unsubForecast) {
+      try { this._unsubForecast(); } catch (_) { /* noop */ }
+      this._unsubForecast = null;
+    }
+    this._subscribedEntity = null;
   }
 
   get name() {
@@ -107,7 +162,11 @@ class SimpleWeatherCard extends LitElement {
   }
 
   shouldUpdate(changedProps) {
-    return changedProps.has("entity") || changedProps.has("custom");
+    return (
+      changedProps.has("entity") ||
+      changedProps.has("custom") ||
+      changedProps.has("forecast")
+    );
   }
 
   render() {

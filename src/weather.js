@@ -73,7 +73,7 @@ export default class WeatherEntity {
     this.hass = hass;
     this.entity = entity;
     this.attr = entity.attributes;
-    this.forecast = entity.attributes.forecast || [[]];
+    this.forecast = entity.attributes.forecast || [];
   }
 
   get state() {
@@ -102,11 +102,11 @@ export default class WeatherEntity {
   }
 
   get high() {
-    return this.forecast[0].temperature;
+    return this.forecast[0] && this.forecast[0].temperature;
   }
 
   get low() {
-    return this.forecast[0].templow;
+    return this.forecast[0] && this.forecast[0].templow;
   }
 
   get wind_speed() {
@@ -124,11 +124,15 @@ export default class WeatherEntity {
   }
 
   get precipitation() {
-    return Math.round((this.forecast[0].precipitation || 0) * 100) / 100;
+    return this.forecast[0]
+      ? Math.round((this.forecast[0].precipitation || 0) * 100) / 100
+      : 0;
   }
 
   get precipitation_probability() {
-    return this.forecast[0].precipitation_probability || 0;
+    return this.forecast[0]
+      ? this.forecast[0].precipitation_probability || 0
+      : 0;
   }
 
   get humidity() {
@@ -152,7 +156,7 @@ export default class WeatherEntity {
 
   toLocale(string, fallback = "unknown") {
     const lang = this.hass.selectedLanguage || this.hass.language;
-    const resources = this.hass.resources[lang];
+    const resources = this.hass.resources && this.hass.resources[lang];
     return resources && resources[string] ? resources[string] : fallback;
   }
 
